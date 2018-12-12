@@ -11,11 +11,15 @@ repositories {
 }
 
 dependencies {
+    // Our beloved one-nio
+    compile("ru.odnoklassniki:one-nio:1.0.2")
+
     // Annotations for better code documentation
     compile("com.intellij:annotations:12.0")
 
-    // https://mvnrepository.com/artifact/ru.odnoklassniki/one-nio
-    compile("ru.odnoklassniki:one-nio:1.0.2")
+    // JUnit 5
+    testImplementation("org.junit.jupiter:junit-jupiter-api:5.3.1")
+    testRuntimeOnly("org.junit.jupiter:junit-jupiter-engine:5.3.1")
 
     compile("org.projectlombok:lombok:1.18.2")
 
@@ -23,23 +27,21 @@ dependencies {
     compile("org.iq80.leveldb:leveldb:0.10")
 
 
-    // JUnit Jupiter test framework
-    testCompile("org.junit.jupiter:junit-jupiter-api:5.3.1")
 
-
-    // HTTP client for unit tests
-    testCompile("org.apache.httpcomponents:fluent-hc:4.5.3")
+    // Guava for tests
+    testCompile("com.google.guava:guava:23.1-jre")
 }
 
 tasks {
     "test"(Test::class) {
         maxHeapSize = "128m"
+        useJUnitPlatform()
     }
 }
 
 application {
     // Define the main class for the application
-    mainClassName = "ru.mail.polis.Server"
+    mainClassName = "ru.mail.polis.Cluster"
 
     // And limit Xmx
     applicationDefaultJvmArgs = listOf("-Xmx128m")
