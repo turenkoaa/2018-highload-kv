@@ -26,8 +26,6 @@ dependencies {
     // https://mvnrepository.com/artifact/org.iq80.leveldb/leveldb
     compile("org.iq80.leveldb:leveldb:0.10")
 
-
-
     // Guava for tests
     testCompile("com.google.guava:guava:23.1-jre")
 }
