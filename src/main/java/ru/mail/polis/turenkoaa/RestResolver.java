@@ -10,5 +10,5 @@ import ru.mail.polis.turenkoaa.util.PreparedRequest;
 import java.io.IOException;
 
 public interface RestResolver {
-    void resolveEntityRequest(@NotNull final Request request, @NotNull final HttpSession session, @NotNull final PreparedRequest query) throws InterruptedException, PoolException, HttpException, IOException;
+    void resolveEntityRequest(@NotNull final HttpSession session, @NotNull final PreparedRequest query) throws InterruptedException, PoolException, HttpException, IOException;
 }

@@ -18,7 +18,6 @@ import java.util.logging.Logger;
 
 import static java.util.logging.Level.WARNING;
 import static one.nio.http.Response.GATEWAY_TIMEOUT;
-import static org.apache.log4j.Level.ERROR;
 import static ru.mail.polis.turenkoaa.util.ServiceHelper.*;
 
 public class EntityController implements Controller {
@@ -52,25 +51,25 @@ public class EntityController implements Controller {
 
     public void resolveRequest(@NotNull final Request request, @NotNull final HttpSession session) throws InterruptedException, HttpException, IOException, PoolException {
         final RestResolver restResolver;
-        PreparedRequest query = prepareRequest(request.getQueryString(), replicas.size());
+        PreparedRequest query = prepareRequest(request, replicas.size());
         if (request.getPath().equals(getPath())) {
             final int method = request.getMethod();
             restResolver = resolverMap.computeIfAbsent(method, __ -> this::notSupported);
         } else {
             restResolver = this::badRequest;
         }
-        restResolver.resolveEntityRequest(request, session, query);
+        restResolver.resolveEntityRequest(session, query);
     }
 
-    public void resolveGet(@NotNull final Request request, @NotNull final HttpSession session, @NotNull final PreparedRequest query) throws IOException, InterruptedException, PoolException, HttpException {
-        if (Boolean.valueOf(request.getHeader(HEADER_REPLICA_REQUEST))){
-            get(request, session, query);
+    public void resolveGet(@NotNull final HttpSession session, @NotNull final PreparedRequest query) throws IOException, InterruptedException, HttpException {
+        if (query.isRequestForReplica()){
+            get(session, query);
         }   else {
-            getWithReplicas(request, session, query);
+            getWithReplicas(session, query);
         }
     }
 
-    public void getWithReplicas(@NotNull Request request, @NotNull HttpSession session, @NotNull final PreparedRequest query) throws IOException, InterruptedException, HttpException {
+    public void getWithReplicas(@NotNull HttpSession session, @NotNull final PreparedRequest query) throws IOException, HttpException, InterruptedException {
         List<Integer> nodes = getNodesById(query.getId(), query.getFrom(), replicas.size());
 
         int successAck = 0;
@@ -91,7 +90,7 @@ public class EntityController implements Controller {
                 HttpClient replica = replicas.get(node);
 
                 try {
-                    Response response = replica.get(request.getURI(), replicaRequestHeaders);
+                    Response response = replica.get(query.getUri(), replicaRequestHeaders);
                     if (response.getStatus() == 200) {
                         successAck++;
                         if (value == null)
@@ -119,7 +118,7 @@ public class EntityController implements Controller {
             session.sendResponse(new Response(GATEWAY_TIMEOUT, Response.EMPTY));
     }
 
-    public void get(@NotNull Request request, @NotNull HttpSession session, @NotNull final PreparedRequest query) throws IOException {
+    public void get(@NotNull HttpSession session, @NotNull final PreparedRequest query) throws IOException {
         try {
             final String id = query.getId();
             final byte[] value;
@@ -132,21 +131,21 @@ public class EntityController implements Controller {
         }
     }
 
-    public void resolvePut(@NotNull final Request request, @NotNull final HttpSession session, @NotNull final PreparedRequest query) throws InterruptedException, HttpException, PoolException, IOException {
-        if (Boolean.valueOf(request.getHeader(HEADER_REPLICA_REQUEST))){
-            put(request, session, query);
+    public void resolvePut(@NotNull final HttpSession session, @NotNull final PreparedRequest query) throws InterruptedException, HttpException, PoolException, IOException {
+        if (query.isRequestForReplica()){
+            put(session, query);
         }   else {
-            putWithReplicas(request, session, query);
+            putWithReplicas(session, query);
         }
     }
 
-    private void putWithReplicas(Request request, HttpSession session, @NotNull final PreparedRequest query) throws IOException, InterruptedException, HttpException, PoolException {
+    private void putWithReplicas(HttpSession session, @NotNull final PreparedRequest query) throws IOException, InterruptedException, HttpException, PoolException {
         List<Integer> nodes = getNodesById(query.getId(), query.getFrom(), replicas.size());
 
         int successAck = 0;
 
         for (Integer node : nodes) {
-            byte[] body = request.getBody();
+            byte[] body = query.getBody();
             if (node == nodeId) {
                 dao.upsert(query.getId().getBytes(), body);
                 successAck++;
@@ -154,7 +153,7 @@ public class EntityController implements Controller {
                 HttpClient replica = replicas.get(node);
 
                 try {
-                    Response response = replica.put(request.getURI(), body, replicaRequestHeaders);
+                    Response response = replica.put(query.getUri(), body, replicaRequestHeaders);
                     if (response.getStatus() == 201)
                         successAck++;
                 } catch (PoolException e) {
@@ -172,23 +171,23 @@ public class EntityController implements Controller {
         }
     }
 
-    public void put(@NotNull Request request, @NotNull HttpSession session, @NotNull final PreparedRequest query) throws IOException {
+    public void put(@NotNull HttpSession session, @NotNull final PreparedRequest query) throws IOException {
         final String id = query.getId();
         if (id != null) {
-            dao.upsert(id.getBytes(), request.getBody());
+            dao.upsert(id.getBytes(), query.getBody());
             session.sendResponse(new Response(Response.CREATED, Response.EMPTY));
         }
     }
 
-    public void resolveDelete(@NotNull final Request request, @NotNull final HttpSession session, @NotNull final PreparedRequest query) throws IOException, InterruptedException, PoolException, HttpException {
-        if (Boolean.valueOf(request.getHeader(HEADER_REPLICA_REQUEST))){
-            delete(request, session, query);
+    public void resolveDelete(@NotNull final HttpSession session, @NotNull final PreparedRequest query) throws IOException, InterruptedException, HttpException {
+        if (query.isRequestForReplica()){
+            delete(session, query);
         }   else {
-            deleteWithReplicas(request, session, query);
+            deleteWithReplicas(session, query);
         }
     }
 
-    private void deleteWithReplicas(Request request, HttpSession session, @NotNull final PreparedRequest query) throws IOException, InterruptedException, HttpException {
+    private void deleteWithReplicas(HttpSession session, @NotNull final PreparedRequest query) throws IOException, HttpException, InterruptedException {
         List<Integer> nodes = getNodesById(query.getId(), query.getFrom(), replicas.size());
 
         int successAck = 0;
@@ -200,7 +199,7 @@ public class EntityController implements Controller {
             } else {
                 HttpClient replica = replicas.get(node);
                 try {
-                    Response response = replica.delete(request.getURI(), replicaRequestHeaders);
+                    Response response = replica.delete(query.getUri(), replicaRequestHeaders);
                     if (response.getStatus() == 202)
                         successAck++;
                 } catch (PoolException e) {
@@ -216,7 +215,7 @@ public class EntityController implements Controller {
         }
     }
 
-    public void delete(@NotNull Request request, @NotNull HttpSession session, @NotNull final PreparedRequest query) throws IOException {
+    public void delete(@NotNull HttpSession session, @NotNull final PreparedRequest query) throws IOException {
         String id = query.getId();
         if (id != null) {
             dao.remove(id.getBytes());

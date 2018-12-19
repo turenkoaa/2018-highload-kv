@@ -13,17 +13,17 @@ import java.io.IOException;
 
 public interface Controller {
     String getPath();
-    void resolveGet(@NotNull final Request request, @NotNull final HttpSession session, @NotNull final PreparedRequest query) throws IOException, InterruptedException, PoolException, HttpException;
-    void resolvePut(@NotNull final Request request, @NotNull final HttpSession session, @NotNull final PreparedRequest query) throws InterruptedException, HttpException, PoolException, IOException;
-    void resolveDelete(@NotNull final Request request, @NotNull final HttpSession session, @NotNull final PreparedRequest query) throws IOException, InterruptedException, PoolException, HttpException;
+    void resolveGet(@NotNull final HttpSession session, @NotNull final PreparedRequest query) throws IOException, InterruptedException, PoolException, HttpException;
+    void resolvePut(@NotNull final HttpSession session, @NotNull final PreparedRequest query) throws InterruptedException, HttpException, PoolException, IOException;
+    void resolveDelete(@NotNull final HttpSession session, @NotNull final PreparedRequest query) throws IOException, InterruptedException, PoolException, HttpException;
 
     @SneakyThrows
-    default void notSupported(@NotNull final Request request, @NotNull final HttpSession session, @NotNull final PreparedRequest query) {
+    default void notSupported(@NotNull final HttpSession session, @NotNull final PreparedRequest query) {
         session.sendResponse(new Response(Response.NOT_FOUND, Response.EMPTY));
     }
 
     @SneakyThrows
-    default void badRequest(@NotNull final Request request, @NotNull final HttpSession session, @NotNull final PreparedRequest query) {
+    default void badRequest(@NotNull final HttpSession session, @NotNull final PreparedRequest query) {
         session.sendResponse(new Response(Response.BAD_REQUEST, Response.EMPTY));
     }
 }

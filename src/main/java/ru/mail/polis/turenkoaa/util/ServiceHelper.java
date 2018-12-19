@@ -3,6 +3,7 @@ package ru.mail.polis.turenkoaa.util;
 import javafx.util.Pair;
 import one.nio.http.HttpClient;
 import one.nio.http.HttpServerConfig;
+import one.nio.http.Request;
 import one.nio.net.ConnectionString;
 import one.nio.server.AcceptorConfig;
 import org.jetbrains.annotations.NotNull;
@@ -12,7 +13,6 @@ import java.net.URLDecoder;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Predicate;
 
 import static java.util.stream.Collectors.toMap;
 
@@ -57,7 +57,8 @@ public class ServiceHelper {
         return nodes;
     }
 
-    public static PreparedRequest prepareRequest(@NotNull String key, int topologySize) {
+    public static PreparedRequest prepareRequest(@NotNull Request request, int topologySize) {
+        String key = request.getQueryString();
         if (requestsCache.containsKey(key)) {
             return requestsCache.get(key);
         }
@@ -78,7 +79,8 @@ public class ServiceHelper {
         if (id == null || "".equals(id) || ack.get() < 1 || from.get() < 1 || ack.get() > from.get() || ack.get() < 1) {
             throw new IllegalArgumentException(INVALID_QUERY);
         }
-        PreparedRequest query  = new PreparedRequest(id, ack.get(), from.get());
+        Boolean isRequestForReplica = Boolean.valueOf(request.getHeader(HEADER_REPLICA_REQUEST));
+        PreparedRequest query  = new PreparedRequest(id, ack.get(), from.get(), request.getBody(), isRequestForReplica, request.getURI());
         requestsCache.put(id, query);
         return query;
     }
