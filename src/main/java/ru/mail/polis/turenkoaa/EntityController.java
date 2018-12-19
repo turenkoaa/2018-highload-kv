@@ -101,7 +101,7 @@ public class EntityController implements Controller {
                         successAck++;
                     }
                 } catch (PoolException e) {
-                    logger.log(WARNING, e.toString());
+//                    logger.log(WARNING, e.toString());
                 }
             }
         }
@@ -157,7 +157,7 @@ public class EntityController implements Controller {
                     if (response.getStatus() == 201)
                         successAck++;
                 } catch (PoolException e) {
-                    logger.log(WARNING, e.toString());
+//                    logger.log(WARNING, e.toString());
                 }
 
 
@@ -203,7 +203,7 @@ public class EntityController implements Controller {
                     if (response.getStatus() == 202)
                         successAck++;
                 } catch (PoolException e) {
-                    logger.log(WARNING, e.toString());
+//                    logger.log(WARNING, e.toString());
                 }
             }
         }

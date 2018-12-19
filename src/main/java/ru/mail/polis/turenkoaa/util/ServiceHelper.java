@@ -59,7 +59,11 @@ public class ServiceHelper {
 
     public static PreparedRequest prepareRequest(@NotNull Request request, int topologySize) {
         String key = request.getQueryString();
-        if (key != null && requestsCache.containsKey(key)) {
+        if (key == null) {
+            throw new IllegalArgumentException(INVALID_QUERY);
+        }
+
+        if (requestsCache.containsKey(key)) {
             return requestsCache.get(key);
         }
         Map<String, String> params = getParams(key);
