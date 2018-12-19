@@ -44,7 +44,7 @@ public class ServiceHelper {
 
     @NotNull
     public static List<Integer> getNodesById(@NotNull final String id, int from, int topologySize) {
-        if (requestsCache.containsKey(id + from)) {
+        if (nodeIdsCache.containsKey(id + from)) {
             return nodeIdsCache.get(id + from);
         }
         List<Integer> nodes = new ArrayList<>();
@@ -59,7 +59,7 @@ public class ServiceHelper {
 
     public static PreparedRequest prepareRequest(@NotNull Request request, int topologySize) {
         String key = request.getQueryString();
-        if (requestsCache.containsKey(key)) {
+        if (key != null && requestsCache.containsKey(key)) {
             return requestsCache.get(key);
         }
         Map<String, String> params = getParams(key);
