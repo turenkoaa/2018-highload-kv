@@ -88,12 +88,6 @@ public class ServiceHelper {
         return new Pair<>(ack, topologySize);
     }
 
-    private static boolean isQuorum(int ack, int from) {
-        int minAck = from / 2 + 1;
-        return ack >= minAck;
-//        return (from <= 2 && ack == from) || (ack >= (from / 2 + 1));
-    }
-
     public static Map<String, String> getParams(@NotNull String query) {
         try {
             Map<String, String> params = new HashMap<>();
