@@ -1,6 +1,5 @@
 package ru.mail.polis.turenkoaa.util;
 
-import javafx.util.Pair;
 import one.nio.http.HttpClient;
 import one.nio.http.HttpServerConfig;
 import one.nio.http.Request;
@@ -13,6 +12,7 @@ import java.net.URLDecoder;
 import java.util.*;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
+
 
 import static java.util.stream.Collectors.toMap;
 
@@ -72,9 +72,8 @@ public class ServiceHelper {
             ack.set(Integer.valueOf(rp[0]));
             from.set(Integer.valueOf(rp[1]));
         } else {
-            Pair<Integer, Integer> quorum = quorum(topologySize);
-            ack.set(quorum.getKey());
-            from.set(quorum.getValue());
+            ack.set(topologySize / 2 + 1);
+            from.set(topologySize);
         }
         if (id == null || "".equals(id) || ack.get() < 1 || from.get() < 1 || ack.get() > from.get() || ack.get() < 1) {
             throw new IllegalArgumentException(INVALID_QUERY);
@@ -83,11 +82,6 @@ public class ServiceHelper {
         PreparedRequest query  = new PreparedRequest(id, ack.get(), from.get(), request.getBody(), isRequestForReplica, request.getURI());
         requestsCache.put(id, query);
         return query;
-    }
-
-    private static Pair<Integer, Integer> quorum(int topologySize) {
-        int ack = topologySize / 2 + 1;
-        return new Pair<>(ack, topologySize);
     }
 
     public static Map<String, String> getParams(@NotNull String query) {
@@ -118,10 +112,28 @@ public class ServiceHelper {
                 .map(path -> new Pair<>(topology.indexOf(path), path))
 //                .filter(pair -> pair.getValue().equals(NODE_PATH + port))
                 .collect(toMap(
-                        Pair::getKey,
-                        pair -> ServiceHelper.createConnectionToReplica(pair.getValue()))
+                        Pair::getLeft,
+                        pair -> ServiceHelper.createConnectionToReplica(pair.getRight()))
 
                 );
+    }
+
+    private static class Pair<T, P> {
+        private final T left;
+        private final P right;
+
+        public Pair(T left, P right) {
+            this.left = left;
+            this.right = right;
+        }
+
+        public T getLeft() {
+            return left;
+        }
+
+        public P getRight() {
+            return right;
+        }
     }
 
     private static HttpClient createConnectionToReplica(String path){
