@@ -10,10 +10,7 @@ import lombok.SneakyThrows;
 import ru.mail.polis.turenkoaa.util.PreparedRequest;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.NoSuchElementException;
+import java.util.*;
 import java.util.logging.Logger;
 
 import static java.util.logging.Level.WARNING;
@@ -29,12 +26,14 @@ public class EntityController implements Controller {
     private final Map<Integer, RestResolver> resolverMap;
     private final int nodeId;
     private final Map<Integer, HttpClient> replicas;
+    private final Set<String> removedIds;
 
     public EntityController(@NotNull KVDao dao, int nodeId, Map<Integer, HttpClient> replicas) {
         this.dao = dao;
         this.nodeId = nodeId;
         this.replicas = replicas;
         resolverMap = new HashMap<>();
+        removedIds = new HashSet<>();
         init();
     }
 
@@ -74,40 +73,45 @@ public class EntityController implements Controller {
 
         int successAck = 0;
         int notFoundCount = 0;
+        int removedCount = 0;
         byte[] value = null;
 
         for (Integer node : nodes) {
             if (node == nodeId) {
                 try {
-                    if (value == null)
+                    if (removedIds.contains(query.getId())) {
+                        removedCount++;
+                    } else if (value == null) {
                         value = dao.get(query.getId().getBytes());
-                    successAck++;
+                    }
                 } catch (NoSuchElementException e) {
                     notFoundCount++;
-                    successAck++;
                 }
+                successAck++;
             } else {
                 HttpClient replica = replicas.get(node);
 
                 try {
                     Response response = replica.get(query.getUri(), replicaRequestHeaders);
                     if (response.getStatus() == 200) {
-                        successAck++;
                         if (value == null)
                             value = response.getBody();
                     }
+                    else if (response.getStatus() == 403){
+                        removedCount++;
+                    }
                     else if (response.getStatus() == 404){
                         notFoundCount++;
-                        successAck++;
                     }
+                    successAck++;
                 } catch (PoolException e) {
-//                    logger.log(WARNING, e.toString());
+                    logger.log(WARNING, e.toString());
                 }
             }
         }
 
         if (successAck >= query.getAck()){
-            if (notFoundCount > 0)
+            if (notFoundCount == successAck || removedCount > 0)
                 session.sendResponse(new Response(Response.NOT_FOUND, Response.EMPTY));
             else if (value != null)
                 session.sendResponse(Response.ok(value));
@@ -121,6 +125,11 @@ public class EntityController implements Controller {
     public void get(@NotNull HttpSession session, @NotNull final PreparedRequest query) throws IOException {
         try {
             final String id = query.getId();
+
+            if (removedIds.contains(id)) {
+                session.sendResponse(new Response(Response.FORBIDDEN, Response.EMPTY));
+            }
+
             final byte[] value;
             if (id != null) {
                 value = dao.get(id.getBytes());
@@ -157,7 +166,7 @@ public class EntityController implements Controller {
                     if (response.getStatus() == 201)
                         successAck++;
                 } catch (PoolException e) {
-//                    logger.log(WARNING, e.toString());
+                    logger.log(WARNING, e.toString());
                 }
 
 
@@ -180,6 +189,7 @@ public class EntityController implements Controller {
     }
 
     public void resolveDelete(@NotNull final HttpSession session, @NotNull final PreparedRequest query) throws IOException, InterruptedException, HttpException {
+        removedIds.add(query.getId());
         if (query.isRequestForReplica()){
             delete(session, query);
         }   else {
@@ -203,7 +213,7 @@ public class EntityController implements Controller {
                     if (response.getStatus() == 202)
                         successAck++;
                 } catch (PoolException e) {
-//                    logger.log(WARNING, e.toString());
+                    logger.log(WARNING, e.toString());
                 }
             }
         }
