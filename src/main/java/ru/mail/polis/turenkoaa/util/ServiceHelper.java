@@ -10,6 +10,8 @@ import org.jetbrains.annotations.NotNull;
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -142,6 +144,15 @@ public class ServiceHelper {
 
     private static HttpClient createConnectionToReplica(String path){
         return new HttpClient(new ConnectionString(path));
+    }
+
+    public static ReplicaResponse joinFutureExceptionally(CompletableFuture<ReplicaResponse> future) {
+        try {
+            return future.join();
+        }
+        catch(CompletionException ex) {
+            throw ex;
+        }
     }
 
 }
