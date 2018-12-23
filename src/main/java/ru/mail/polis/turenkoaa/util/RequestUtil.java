@@ -1,24 +1,19 @@
 package ru.mail.polis.turenkoaa.util;
 
-import one.nio.http.HttpClient;
 import one.nio.http.HttpServerConfig;
 import one.nio.http.Request;
-import one.nio.net.ConnectionString;
 import one.nio.server.AcceptorConfig;
 import org.jetbrains.annotations.NotNull;
+import ru.mail.polis.turenkoaa.model.PreparedRequest;
 
 import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
-import java.util.*;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.CompletionException;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 
-
-import static java.util.stream.Collectors.toMap;
-
-public class ServiceHelper {
+public class RequestUtil {
 
     public static final String STATUS_PATH = "/v0/status";
     public static final String ENTITY_PATH = "/v0/entity";
@@ -42,22 +37,6 @@ public class ServiceHelper {
     }
 
     private static final Map<String, PreparedRequest> requestsCache = new ConcurrentHashMap<>();
-    private static final Map<String, List<Integer>> nodeIdsCache = new ConcurrentHashMap<>();
-
-    @NotNull
-    public static List<Integer> getNodesById(@NotNull final String id, int from, int topologySize) {
-        if (nodeIdsCache.containsKey(id + from)) {
-            return nodeIdsCache.get(id + from);
-        }
-        List<Integer> nodes = new ArrayList<>();
-        int hash = Math.abs(id.hashCode());
-        for (int i = 0; i < from; i++) {
-            int index = (hash + i) % topologySize;
-            nodes.add(index);
-        }
-        nodeIdsCache.put(id + from, nodes);
-        return nodes;
-    }
 
     public static PreparedRequest prepareRequest(@NotNull Request request, int topologySize) {
         String key = request.getQueryString();
@@ -90,7 +69,7 @@ public class ServiceHelper {
         return query;
     }
 
-    public static Map<String, String> getParams(@NotNull String query) {
+    private static Map<String, String> getParams(@NotNull String query) {
         try {
             Map<String, String> params = new HashMap<>();
             for (String param : query.split(AND)) {
@@ -111,48 +90,6 @@ public class ServiceHelper {
         HttpServerConfig config = new HttpServerConfig();
         config.acceptors = new AcceptorConfig[]{ac};
         return config;
-    }
-
-    public static Map<Integer, HttpClient> extractReplicas(int port, List<String> topology) {
-        return topology.stream()
-                .map(path -> new Pair<>(topology.indexOf(path), path))
-//                .filter(pair -> pair.getValue().equals(NODE_PATH + port))
-                .collect(toMap(
-                        Pair::getLeft,
-                        pair -> ServiceHelper.createConnectionToReplica(pair.getRight()))
-
-                );
-    }
-
-    private static class Pair<T, P> {
-        private final T left;
-        private final P right;
-
-        public Pair(T left, P right) {
-            this.left = left;
-            this.right = right;
-        }
-
-        public T getLeft() {
-            return left;
-        }
-
-        public P getRight() {
-            return right;
-        }
-    }
-
-    private static HttpClient createConnectionToReplica(String path){
-        return new HttpClient(new ConnectionString(path));
-    }
-
-    public static ReplicaResponse joinFutureExceptionally(CompletableFuture<ReplicaResponse> future) {
-        try {
-            return future.join();
-        }
-        catch(CompletionException ex) {
-            throw ex;
-        }
     }
 
 }

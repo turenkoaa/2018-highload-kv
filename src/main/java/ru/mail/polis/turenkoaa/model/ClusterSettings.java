@@ -1,4 +1,4 @@
-package ru.mail.polis.turenkoaa.util;
+package ru.mail.polis.turenkoaa.model;
 
 import one.nio.http.HttpClient;
 import org.jetbrains.annotations.NotNull;
@@ -7,14 +7,14 @@ import ru.mail.polis.KVDao;
 import java.util.Map;
 import java.util.Set;
 
-public class ClusterInfo {
+public class ClusterSettings {
     @NotNull
     private final KVDao dao;
     private final int nodeId;
     private final Map<Integer, HttpClient> replicas;
     private final Set<String> removedIds;
 
-    public ClusterInfo(@NotNull KVDao dao, int nodeId, Map<Integer, HttpClient> replicas, Set<String> removedIds) {
+    public ClusterSettings(@NotNull KVDao dao, int nodeId, Map<Integer, HttpClient> replicas, Set<String> removedIds) {
         this.dao = dao;
         this.nodeId = nodeId;
         this.replicas = replicas;

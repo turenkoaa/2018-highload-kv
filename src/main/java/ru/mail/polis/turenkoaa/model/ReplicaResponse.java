@@ -1,4 +1,4 @@
-package ru.mail.polis.turenkoaa.util;
+package ru.mail.polis.turenkoaa.model;
 
 
 public class ReplicaResponse {
