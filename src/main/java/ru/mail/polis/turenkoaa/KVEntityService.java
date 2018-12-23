@@ -11,9 +11,9 @@ import ru.mail.polis.turenkoaa.rest.RestResolver;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentSkipListSet;
 
 import static one.nio.http.Response.*;
 import static ru.mail.polis.turenkoaa.util.ClusterUtil.extractReplicas;
@@ -33,7 +33,7 @@ public class KVEntityService extends HttpServer implements KVService {
         ArrayList<String> nodePaths = new ArrayList<>(topology);
         int nodeId = nodePaths.indexOf(NODE_PATH + port);
         Map<Integer, HttpClient> replicas = extractReplicas(nodePaths);
-        return new ClusterSettings(dao, nodeId, replicas, new HashSet<>());
+        return new ClusterSettings(dao, nodeId, replicas, new ConcurrentSkipListSet<>());
     }
 
     @Path(STATUS_PATH)

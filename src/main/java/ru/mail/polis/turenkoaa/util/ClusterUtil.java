@@ -35,8 +35,9 @@ public class ClusterUtil {
                 .map(path -> new Pair<>(topology.indexOf(path), path))
                 .collect(toMap(
                         Pair::getLeft,
-                        pair -> createConnectionToReplica(pair.getRight()))
-
+                        pair -> createConnectionToReplica(pair.getRight()),
+                        (a, b) -> b,
+                        ConcurrentHashMap::new)
                 );
     }
 
@@ -51,7 +52,6 @@ public class ClusterUtil {
     private static HttpClient createConnectionToReplica(String path){
         return new HttpClient(new ConnectionString(path));
     }
-
 
     private static class Pair<T, P> {
         private final T left;
