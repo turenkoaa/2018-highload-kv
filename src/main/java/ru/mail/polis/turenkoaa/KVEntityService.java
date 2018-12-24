@@ -11,6 +11,7 @@ import ru.mail.polis.turenkoaa.rest.RestResolver;
 
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentSkipListSet;
@@ -23,14 +24,14 @@ public class KVEntityService extends HttpServer implements KVService {
     private final ClusterSettings clusterSettings;
     private final RestResolver restResolver;
 
-    public KVEntityService(final int port, final KVDao dao, Set<String> topology) throws IOException {
+    public KVEntityService(final int port, final KVDao dao, final Set<String> topology) throws IOException {
         super(from(port));
         clusterSettings = getClusterSettings(port, dao, topology);
         restResolver = new RestResolver(clusterSettings);
     }
 
-    private ClusterSettings getClusterSettings(int port, KVDao dao, Set<String> topology) {
-        ArrayList<String> nodePaths = new ArrayList<>(topology);
+    private ClusterSettings getClusterSettings(final int port, final KVDao dao, final Set<String> topology) {
+        List<String> nodePaths = new ArrayList<>(topology);
         int nodeId = nodePaths.indexOf(NODE_PATH + port);
         Map<Integer, HttpClient> replicas = extractReplicas(nodePaths);
         return new ClusterSettings(dao, nodeId, replicas, new ConcurrentSkipListSet<>());

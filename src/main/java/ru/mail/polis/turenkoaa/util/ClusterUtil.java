@@ -17,16 +17,17 @@ public class ClusterUtil {
 
     @NotNull
     public static List<Integer> getNodesById(@NotNull final String id, int from, int topologySize) {
-        if (nodeIdsCache.containsKey(id + from)) {
-            return nodeIdsCache.get(id + from);
+        List<Integer> nodes = nodeIdsCache.get(id + from);
+
+        if (nodes == null) {
+            nodes = new ArrayList<>();
+            int hash = Math.abs(id.hashCode());
+            for (int i = 0; i < from; i++) {
+                int index = (hash + i) % topologySize;
+                nodes.add(index);
+            }
+            nodeIdsCache.put(id + from, nodes);
         }
-        List<Integer> nodes = new ArrayList<>();
-        int hash = Math.abs(id.hashCode());
-        for (int i = 0; i < from; i++) {
-            int index = (hash + i) % topologySize;
-            nodes.add(index);
-        }
-        nodeIdsCache.put(id + from, nodes);
         return nodes;
     }
 
@@ -35,9 +36,7 @@ public class ClusterUtil {
                 .map(path -> new Pair<>(topology.indexOf(path), path))
                 .collect(toMap(
                         Pair::getLeft,
-                        pair -> createConnectionToReplica(pair.getRight()),
-                        (a, b) -> b,
-                        ConcurrentHashMap::new)
+                        pair -> createConnectionToReplica(pair.getRight()))
                 );
     }
 

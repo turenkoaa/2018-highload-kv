@@ -10,8 +10,6 @@ import java.io.UnsupportedEncodingException;
 import java.net.URLDecoder;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 
 public class RequestUtil {
 
@@ -36,37 +34,31 @@ public class RequestUtil {
         replicaRequestHeaders[0] = HEADER_REPLICA_REQUEST + true;
     }
 
-    private static final Map<String, PreparedRequest> requestsCache = new ConcurrentHashMap<>();
-
     public static PreparedRequest prepareRequest(@NotNull Request request, int topologySize) {
         String key = request.getQueryString();
         if (key == null) {
             throw new IllegalArgumentException(INVALID_QUERY);
         }
 
-        if (requestsCache.containsKey(key)) {
-            return requestsCache.get(key);
-        }
         Map<String, String> params = getParams(key);
         String id = params.get(ID);
 
-        AtomicInteger ack = new AtomicInteger();
-        AtomicInteger from = new AtomicInteger();
+        int ack;
+        int from ;
         if (params.containsKey(REPLICAS)) {
             String[] rp = params.get(REPLICAS).split(DELIMITER);
-            ack.set(Integer.valueOf(rp[0]));
-            from.set(Integer.valueOf(rp[1]));
+            ack = Integer.valueOf(rp[0]);
+            from = Integer.valueOf(rp[1]);
         } else {
-            ack.set(topologySize / 2 + 1);
-            from.set(topologySize);
+            ack = topologySize / 2 + 1;
+            from = topologySize;
         }
-        if (id == null || "".equals(id) || ack.get() < 1 || from.get() < 1 || ack.get() > from.get() || ack.get() < 1) {
+        if (id == null || "".equals(id) || ack < 1 || ack > from) {
             throw new IllegalArgumentException(INVALID_QUERY);
         }
-        Boolean isRequestForReplica = Boolean.valueOf(request.getHeader(HEADER_REPLICA_REQUEST));
-        PreparedRequest query  = new PreparedRequest(id, ack.get(), from.get(), request.getBody(), isRequestForReplica, request.getURI());
-        requestsCache.put(id, query);
-        return query;
+        boolean isRequestForReplica = Boolean.parseBoolean(request.getHeader(HEADER_REPLICA_REQUEST));
+
+        return new PreparedRequest(id, ack, from, request.getBody(), isRequestForReplica, request.getURI());
     }
 
     private static Map<String, String> getParams(@NotNull String query) {
